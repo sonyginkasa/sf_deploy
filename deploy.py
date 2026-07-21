@@ -29,18 +29,36 @@ conn = snowflake.connector.connect(
 
 cs = conn.cursor()
 
-# Run every .sql file in the sql/ folder, in order
+# Ensure tracking table exist
+
+# Get list of already-executed files
+cs.execute("SELECT filename FROM DEPLOY_HISTORY")
+already_run = {row[0] for row in cs.fetchall()}
+
+# Run only new .sql files, in order
 for filepath in sorted(glob.glob("sql/*.sql")):
-    print(f"Running {filepath}...")
+    filename = os.path.basename(filepath)
+
+    if filename in already_run:
+        print(f"Skipping {filename} (already executed)")
+        continue
+
+    print(f"Running {filename}...")
     with open(filepath) as f:
         sql = f.read()
     for statement in sql.split(";"):
         statement = statement.strip()
         if statement:
             cs.execute(statement)
-    print(f"Finished {filepath}")
 
-print("All scripts executed successfully.")
+    # Log it as executed
+    cs.execute(
+        "INSERT INTO DEPLOY_HISTORY (filename) VALUES (%s)",
+        (filename,)
+    )
+    print(f"Finished {filename}, logged to DEPLOY_HISTORY")
+
+print("Deployment complete.")
 
 cs.close()
 conn.close()
