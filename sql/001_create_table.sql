@@ -1,1 +1,5 @@
-
+CREATE TABLE IF NOT EXISTS PRACTICE_TABLE (
+       id INT,
+       name STRING,
+       created_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
+   );
